@@ -588,7 +588,7 @@ function initStaticDashboard() {
       applyAuthUserToUI(null)
       syncDrawerAuthUI()
       closeAuthModal()
-      showToast('Misafir olarak devam ediliyor.')
+      showToast(getLanguage() === 'en' ? 'Continuing as guest.' : 'Misafir olarak devam ediliyor.')
     })
   }
 
@@ -628,11 +628,12 @@ function initStaticDashboard() {
       try {
         const email = qs('#deepcal-login-email')?.value?.trim()
         const password = qs('#deepcal-login-password')?.value
-        if (!email || !password) throw new Error('Lütfen tüm alanları doldurun.')
+        if (!email || !password)
+          throw new Error(getLanguage() === 'en' ? 'Please fill in all fields.' : 'Lütfen tüm alanları doldurun.')
 
         const payload = await loginUser({ email, password })
         const token = payload?.access_token
-        if (!token) throw new Error('Token alınamadı.')
+        if (!token) throw new Error(getLanguage() === 'en' ? 'Token could not be retrieved.' : 'Token alınamadı.')
 
         setAuthToken(token)
         const user = await getMe()
@@ -663,11 +664,12 @@ function initStaticDashboard() {
         const name = qs('#deepcal-register-name')?.value?.trim()
         const email = qs('#deepcal-register-email')?.value?.trim()?.toLowerCase()
         const password = qs('#deepcal-register-password')?.value
-        if (!name || !email || !password) throw new Error('Lütfen tüm alanları doldurun.')
+        if (!name || !email || !password)
+          throw new Error(getLanguage() === 'en' ? 'Please fill in all fields.' : 'Lütfen tüm alanları doldurun.')
 
         const payload = await registerUser({ name, email, password })
         const token = payload?.access_token
-        if (!token) throw new Error('Token alınamadı.')
+        if (!token) throw new Error(getLanguage() === 'en' ? 'Token could not be retrieved.' : 'Token alınamadı.')
 
         setAuthToken(token)
         const user = await getMe()
@@ -699,7 +701,7 @@ function initStaticDashboard() {
       syncDrawerAuthUI()
       setAuthTab('login')
       openAuthModal()
-      showToast('Çıkış yapıldı.')
+      showToast(getLanguage() === 'en' ? 'Logged out.' : 'Çıkış yapıldı.')
     })
   }
 
@@ -1739,20 +1741,24 @@ initStaticDashboard()
 
 function render() {
   $app.innerHTML = `
-    <div id="appShell" class="max-w-md mx-auto h-screen w-full flex flex-col bg-slate-50 dark:bg-slate-900 overflow-x-hidden relative px-8">
-      <header class="sticky top-0 z-20 -mx-8 flex items-center justify-between border-b border-slate-200/60 bg-white/85 px-8 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-md">
-        <button id="menuBtn" type="button" class="dc-icon-btn" aria-label="Menü">
-          <svg viewBox="0 0 24 24" class="h-5 w-5 text-slate-700" aria-hidden="true">
-            <path fill="currentColor" d="M4 6.75A.75.75 0 0 1 4.75 6h14.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 6.75ZM4 12a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 12Zm0 5.25A.75.75 0 0 1 4.75 16.5h14.5a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1-.75-.75Z"/>
-          </svg>
-        </button>
+    <div id="appShell" class="max-w-md mx-auto h-screen w-full flex flex-col bg-slate-50 dark:bg-slate-900 overflow-x-hidden relative px-4 sm:px-8">
+      <header class="sticky top-0 z-20 -mx-4 sm:-mx-8 flex w-full items-center justify-between border-b border-slate-200/60 bg-white/85 px-4 sm:px-8 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur-md">
+        <div class="flex items-center gap-2">
+          <div class="text-sm font-semibold tracking-wide text-slate-800">DeepCal</div>
+        </div>
 
-        <div class="text-sm font-semibold tracking-wide text-slate-800">DeepCal</div>
+        <div class="flex items-center gap-2">
+          <div id="profileWrap" class="relative">
+            <button id="profileBtn" type="button" class="dc-icon-btn" aria-label="Profil" aria-haspopup="menu" aria-expanded="false">
+              <svg viewBox="0 0 24 24" class="h-5 w-5 text-slate-700" aria-hidden="true">
+                <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4Zm0 2c-3.87 0-7 2.24-7 5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1c0-2.76-3.13-5-7-5Z"/>
+              </svg>
+            </button>
+          </div>
 
-        <div id="profileWrap" class="relative">
-          <button id="profileBtn" type="button" class="dc-icon-btn" aria-label="Profil" aria-haspopup="menu" aria-expanded="false">
+          <button id="menuBtn" type="button" class="dc-icon-btn" aria-label="Menü">
             <svg viewBox="0 0 24 24" class="h-5 w-5 text-slate-700" aria-hidden="true">
-              <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4Zm0 2c-3.87 0-7 2.24-7 5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1c0-2.76-3.13-5-7-5Z"/>
+              <path fill="currentColor" d="M4 6.75A.75.75 0 0 1 4.75 6h14.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 6.75ZM4 12a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 12Zm0 5.25A.75.75 0 0 1 4.75 16.5h14.5a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1-.75-.75Z"/>
             </svg>
           </button>
         </div>
@@ -1776,7 +1782,7 @@ function render() {
           </button>
         </div>
 
-        <nav class="px-3">
+        <nav class="px-4 sm:px-3">
           <a data-route="home" class="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors">
             <span class="h-2 w-2 rounded-full"></span>
             Ana Ekran

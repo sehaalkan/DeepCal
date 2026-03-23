@@ -304,7 +304,7 @@ function getByPath(obj, path) {
   return cur
 }
 
-let currentLang = 'tr'
+let currentLang = 'en'
 
 function resolveInitialLang() {
   try {
@@ -313,7 +313,7 @@ function resolveInitialLang() {
   } catch {
     // ignore
   }
-  return 'tr'
+  return 'en'
 }
 
 currentLang = resolveInitialLang()
