@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.5-flash"
     database_url: str = "sqlite:///./deepcal.db"
 
+    # JWT Auth
+    # Not: Prod ortamında her zaman env üzerinden güçlü bir secret ver.
+    jwt_secret: str = "dev-change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_exp_minutes: int = 60 * 24
+
 
 settings = Settings()
 

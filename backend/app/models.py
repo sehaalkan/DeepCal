@@ -43,3 +43,27 @@ class TodayStats(BaseModel):
     fat_g: float
     carbs_g: float
 
+
+class UserRegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str = Field(min_length=8)
+
+
+class UserLoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserMeResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    current_streak: int = 0
+    last_log_date: str | None = None
+

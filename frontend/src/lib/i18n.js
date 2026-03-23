@@ -65,6 +65,7 @@ const DICT = {
       logFailed: 'Kayıt başarısız.',
       statsFailed: 'İstatistikler alınamadı.',
       diaryFailed: 'Günlük alınamadı.',
+      serverUnreachable: 'Sunucuya bağlanılamadı. Lütfen backend sunucusunu kontrol edin.',
     },
     upload: {
       analyzing: 'Analiz ediliyor...',
@@ -209,6 +210,7 @@ const DICT = {
       logFailed: 'Log entry failed.',
       statsFailed: 'Could not fetch statistics.',
       diaryFailed: 'Could not fetch diary.',
+      serverUnreachable: 'Could not connect to server. Please check backend service.',
     },
     upload: {
       analyzing: 'Analyzing...',

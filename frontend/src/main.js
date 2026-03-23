@@ -1,5 +1,14 @@
 import './style.css'
-import { createLogEntry, getTodayLog, getTodayStats } from './lib/api.js'
+import {
+  analyzeMealImage,
+  createLogEntry,
+  getTodayLog,
+  getTodayStats,
+  getMe,
+  getLogs,
+  loginUser,
+  registerUser,
+} from './lib/api.js'
 import { qs, on } from './lib/dom.js'
 import { validateImageFile } from './lib/file.js'
 import { applyI18n, getLanguage, setLanguage, t } from './lib/i18n.js'
@@ -76,7 +85,24 @@ function initStaticDashboard() {
 
   let activeNavKey = null
   let activeResultMeal = null
-  const langToggleBtn = document.getElementById('deepcal-lang-toggle')
+  const headerLangTrBtn = document.getElementById('deepcal-header-lang-tr')
+  const headerLangEnBtn = document.getElementById('deepcal-header-lang-en')
+  const headerLangSlider = document.getElementById('deepcal-header-lang-slider')
+
+  function syncHeaderLangSegment(nextLang = getLanguage()) {
+    const lang = nextLang === 'en' ? 'en' : 'tr'
+    if (headerLangSlider) {
+      headerLangSlider.style.transform = lang === 'tr' ? 'translateX(0%)' : 'translateX(100%)'
+    }
+    if (headerLangTrBtn) {
+      headerLangTrBtn.classList.toggle('text-white', lang === 'tr')
+      headerLangTrBtn.classList.toggle('text-gray-500', lang !== 'tr')
+    }
+    if (headerLangEnBtn) {
+      headerLangEnBtn.classList.toggle('text-white', lang === 'en')
+      headerLangEnBtn.classList.toggle('text-gray-500', lang !== 'en')
+    }
+  }
 
   const fileInput =
     document.querySelector('#deepcal-upload-input') ||
@@ -120,6 +146,8 @@ function initStaticDashboard() {
   const DAILY_CARBS_G_KEY_PREFIX = 'dc_daily_carbs_g_v1_'
   const DAILY_HISTORY_KEY_PREFIX = 'dc_daily_history_v1_'
   const PROFILE_KEY = 'dc_profile_v1'
+  const AUTH_TOKEN_KEY = 'dc_auth_token_v1'
+  const AUTH_USER_CACHE_KEY = 'dc_auth_user_v1'
 
   const defaultProfile = {
     heightCm: 170,
@@ -127,6 +155,39 @@ function initStaticDashboard() {
     age: 25,
     gender: 'Kadın',
     dailyCalGoal: 2000,
+  }
+
+  function getAuthToken() {
+    try {
+      return localStorage.getItem(AUTH_TOKEN_KEY)
+    } catch {
+      return null
+    }
+  }
+
+  function setAuthToken(token) {
+    try {
+      localStorage.setItem(AUTH_TOKEN_KEY, token)
+    } catch {
+      // ignore
+    }
+  }
+
+  function clearAuth() {
+    try {
+      localStorage.removeItem(AUTH_TOKEN_KEY)
+      localStorage.removeItem(AUTH_USER_CACHE_KEY)
+    } catch {
+      // ignore
+    }
+  }
+
+  function loadCachedUser() {
+    return readJson(AUTH_USER_CACHE_KEY, null)
+  }
+
+  function cacheUser(user) {
+    writeJson(AUTH_USER_CACHE_KEY, user)
   }
 
   function getLocalDateKey(d = new Date()) {
@@ -181,6 +242,469 @@ function initStaticDashboard() {
     document.body.appendChild(el)
     setTimeout(() => el.remove(), 2200)
   }
+
+  // -----------------------------
+  // Auth (JWT) - login/register/guest
+  // -----------------------------
+  const profileNameEl = document.getElementById('deepcal-profile-name')
+  const profileEmailEl = document.getElementById('deepcal-profile-email')
+  const welcomeNameEl = document.getElementById('deepcal-welcome-name')
+  const welcomePrefixEl = document.getElementById('deepcal-welcome-prefix')
+  const welcomeSuffixEl = document.getElementById('deepcal-welcome-suffix')
+  let authUser = null
+
+  function setAuthError(message) {
+    if (!authErrorEl) return
+    if (!message) {
+      authErrorEl.classList.add('hidden')
+      authErrorEl.textContent = ''
+      return
+    }
+    authErrorEl.textContent = String(message || '')
+    authErrorEl.classList.remove('hidden')
+  }
+
+  function getProcessingLabel() {
+    const lang = getLanguage()
+    return lang === 'en' ? 'Processing...' : 'İşleniyor...'
+  }
+
+  const authOverlay = document.getElementById('deepcal-auth-overlay')
+  const authModal = document.getElementById('deepcal-auth-modal')
+  const authCloseBtn = document.getElementById('deepcal-auth-close-btn')
+  const authGuestBtn = document.getElementById('deepcal-auth-guest-btn')
+  const authHintEl = document.getElementById('deepcal-auth-hint')
+  const authErrorEl = document.getElementById('deepcal-auth-error')
+
+  const authTabLogin = document.getElementById('deepcal-auth-tab-login')
+  const authTabRegister = document.getElementById('deepcal-auth-tab-register')
+  const authFormLogin = document.getElementById('deepcal-auth-form-login')
+  const authFormRegister = document.getElementById('deepcal-auth-form-register')
+
+  const profileGuestContentEl = document.getElementById('deepcal-profile-guest-content')
+  const profileAuthContentEl = document.getElementById('deepcal-profile-auth-content')
+
+  const profileGuestTitleEl = document.getElementById('deepcal-profile-guest-title')
+  const profileGuestDescEl = document.getElementById('deepcal-profile-guest-desc')
+  const profileStreakBadgeEl = document.getElementById('deepcal-profile-streak')
+
+  // Today's Summary streak widget (dynamic).
+  const homeStreakTitleEl = document.getElementById('deepcal-home-streak-title')
+  const homeStreakDescEl = document.getElementById('deepcal-home-streak-desc')
+  const homeStreakValueEl = document.getElementById('deepcal-home-streak-value')
+
+  const profileGuestLoginBtnEl = document.getElementById('deepcal-profile-guest-login-btn')
+  const profileGuestRegisterBtnEl = document.getElementById(
+    'deepcal-profile-guest-register-btn'
+  )
+
+  function syncWelcomeGreeting(user) {
+    const lang = getLanguage()
+    const isGuest = !user
+    const guestLabel = lang === 'en' ? 'Guest' : 'Misafir'
+
+    if (welcomePrefixEl) {
+      welcomePrefixEl.textContent = lang === 'en' ? 'Welcome, ' : 'Hoşgeldin, '
+    }
+    if (welcomeSuffixEl) {
+      welcomeSuffixEl.textContent = '!'
+    }
+    if (welcomeNameEl) {
+      const nextText = isGuest ? guestLabel : user?.name || guestLabel
+      if (welcomeNameEl.textContent !== nextText) {
+        // Soft swap animation for a polished "magic moment".
+        welcomeNameEl.style.transition = 'opacity 160ms ease, transform 160ms ease'
+        welcomeNameEl.style.opacity = '0'
+        welcomeNameEl.style.transform = 'translateY(-2px)'
+        requestAnimationFrame(() => {
+          welcomeNameEl.textContent = nextText
+          welcomeNameEl.style.opacity = '1'
+          welcomeNameEl.style.transform = 'translateY(0)'
+        })
+      } else {
+        welcomeNameEl.textContent = nextText
+      }
+    }
+  }
+
+  function syncProfileGreeting(user) {
+    const lang = getLanguage()
+    const guestLabel = lang === 'en' ? 'Guest' : 'Misafir'
+
+    if (user && typeof user === 'object') {
+      if (profileNameEl) profileNameEl.textContent = user.name || 'Kullanıcı'
+      if (profileEmailEl) profileEmailEl.textContent = user.email || ''
+    } else {
+      if (profileNameEl) profileNameEl.textContent = guestLabel
+      if (profileEmailEl) profileEmailEl.textContent = ''
+    }
+  }
+
+  function applyAuthUserToUI(user) {
+    syncProfileGreeting(user)
+    syncWelcomeGreeting(user)
+    syncHomeStreakUI(user)
+  }
+
+  function syncHomeStreakUI(user) {
+    const lang = getLanguage()
+    const isGuest = !user
+    const rawStreak = isGuest ? 0 : Number(user?.current_streak ?? 0)
+    const streak = Number.isFinite(rawStreak) && rawStreak >= 0 ? Math.floor(rawStreak) : 0
+
+    if (homeStreakValueEl) {
+      homeStreakValueEl.textContent = lang === 'en' ? `${streak} Days` : `${streak} Gün`
+    }
+
+    if (homeStreakTitleEl) {
+      if (isGuest) {
+        homeStreakTitleEl.textContent =
+          lang === 'en' ? 'Login to start your streak' : 'Serini Başlatmak İçin Giriş Yap'
+      } else if (streak === 0) {
+        homeStreakTitleEl.textContent = lang === 'en' ? 'Start your journey today!' : 'Yolculuğuna Bugün Başla!'
+      } else if (streak === 1) {
+        homeStreakTitleEl.textContent = lang === 'en' ? "First day! You're doing great." : 'İlk Günün! Harika Gidiyorsun.'
+      } else {
+        homeStreakTitleEl.textContent = lang === 'en' ? 'Streak Continues!' : 'Seri Devam Ediyor!'
+      }
+    }
+
+    if (homeStreakDescEl) {
+      let desc = ''
+      if (!isGuest && streak >= 2) {
+        desc =
+          lang === 'en'
+            ? `You've been hitting your goals for the last ${streak} days.`
+            : `Son ${streak} gündür hedeflerini tutturuyorsun.`
+      }
+      homeStreakDescEl.textContent = desc
+      homeStreakDescEl.classList.toggle('hidden', !desc)
+    }
+  }
+
+  function syncDrawerAuthUI() {
+    const isGuest = !authUser
+    if (profileGuestContentEl)
+      profileGuestContentEl.classList.toggle('hidden', !isGuest)
+    if (profileAuthContentEl)
+      profileAuthContentEl.classList.toggle('hidden', isGuest)
+
+    const lang = getLanguage()
+    const title = lang === 'en' ? 'Welcome! Start Your Journey' : 'Hoşgeldin! Yolculuğuna Başla'
+    const desc =
+      lang === 'en'
+        ? 'Log in or create an account to track meals and get personalized analysis.'
+        : 'Öğünlerinizi takip etmek ve kişiselleştirilmiş analizler almak için giriş yapın veya hesap oluşturun.'
+    const loginLabel = lang === 'en' ? 'Login' : 'Giriş Yap'
+    const registerLabel = lang === 'en' ? 'Create Account' : 'Hesap Oluştur'
+
+    if (profileGuestTitleEl) profileGuestTitleEl.textContent = title
+    if (profileGuestDescEl) profileGuestDescEl.textContent = desc
+    if (profileGuestLoginBtnEl) profileGuestLoginBtnEl.textContent = loginLabel
+    if (profileGuestRegisterBtnEl) profileGuestRegisterBtnEl.textContent = registerLabel
+
+    // Streak rozetini auth durumuna göre güncelle.
+    if (profileStreakBadgeEl) {
+      const streak = Number(authUser?.current_streak ?? 0)
+      if (!Number.isFinite(streak) || streak < 0) {
+        if (lang === 'en') profileStreakBadgeEl.textContent = `0-Day Streak`
+        else profileStreakBadgeEl.textContent = `0 Günlük Seri`
+      } else {
+        if (lang === 'en') profileStreakBadgeEl.textContent = `${streak}-Day Streak`
+        else profileStreakBadgeEl.textContent = `${streak} Günlük Seri`
+      }
+    }
+  }
+
+  function openAuthModal() {
+    try {
+      closeStaticProfilePopover()
+    } catch {
+      // ignore
+    }
+    if (authOverlay) authOverlay.classList.remove('hidden')
+    if (authModal) authModal.classList.remove('hidden')
+
+    // Reset any previous auth error.
+    setAuthError(null)
+
+    // Soft entrance.
+    if (authOverlay) {
+      authOverlay.style.transition = 'opacity 160ms ease'
+      authOverlay.style.opacity = '0'
+      requestAnimationFrame(() => {
+        authOverlay.style.opacity = '1'
+      })
+    }
+    if (authModal) {
+      authModal.style.transition = 'opacity 160ms ease, transform 160ms ease'
+      authModal.style.opacity = '0'
+      authModal.style.transform = 'translateY(8px) scale(0.99)'
+      requestAnimationFrame(() => {
+        authModal.style.opacity = '1'
+        authModal.style.transform = 'translateY(0) scale(1)'
+      })
+    }
+  }
+
+  function closeAuthModal() {
+    if (!authOverlay || !authModal) {
+      authOverlay?.classList?.add?.('hidden')
+      authModal?.classList?.add?.('hidden')
+      return
+    }
+
+    authOverlay.style.transition = 'opacity 160ms ease'
+    authOverlay.style.opacity = '0'
+
+    authModal.style.transition = 'opacity 160ms ease, transform 160ms ease'
+    authModal.style.opacity = '0'
+    authModal.style.transform = 'translateY(8px) scale(0.99)'
+
+    window.setTimeout(() => {
+      authOverlay.classList.add('hidden')
+      authModal.classList.add('hidden')
+
+      // Clear inline styles.
+      authOverlay.style.transition = ''
+      authOverlay.style.opacity = ''
+      authModal.style.transition = ''
+      authModal.style.opacity = ''
+      authModal.style.transform = ''
+    }, 180)
+  }
+
+  function setAuthFormProcessing(formEl, processing) {
+    if (!formEl) return
+    const submitBtn = formEl.querySelector('button[type="submit"]')
+
+    // Disable only inside the form.
+    formEl.querySelectorAll('input, button').forEach((el) => {
+      el.disabled = Boolean(processing)
+    })
+
+    // Disable tabs / guest action to prevent accidental switching mid-request.
+    if (authTabLogin) authTabLogin.disabled = Boolean(processing)
+    if (authTabRegister) authTabRegister.disabled = Boolean(processing)
+    if (authGuestBtn) authGuestBtn.disabled = Boolean(processing)
+
+    if (!submitBtn) return
+    if (processing) {
+      if (!submitBtn.dataset.originalLabel) {
+        submitBtn.dataset.originalLabel = String(submitBtn.textContent || '').trim()
+      }
+      submitBtn.textContent = getProcessingLabel()
+    } else {
+      if (submitBtn.dataset.originalLabel) {
+        submitBtn.textContent = submitBtn.dataset.originalLabel
+      }
+    }
+  }
+
+  function setAuthTab(tab) {
+    const activeLogin = tab === 'login'
+    if (authTabLogin) {
+      authTabLogin.className = activeLogin
+        ? 'flex-1 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-100'
+        : 'flex-1 rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-white transition'
+    }
+    if (authTabRegister) {
+      authTabRegister.className = !activeLogin
+        ? 'flex-1 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-100'
+        : 'flex-1 rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-white transition'
+    }
+    if (authFormLogin) authFormLogin.classList.toggle('hidden', !activeLogin)
+    if (authFormRegister) authFormRegister.classList.toggle('hidden', activeLogin)
+  }
+
+  async function bootstrapAuth() {
+    const token = getAuthToken()
+    const cachedUser = loadCachedUser()
+    if (cachedUser && token) {
+      authUser = cachedUser
+      applyAuthUserToUI(cachedUser)
+      syncDrawerAuthUI()
+    }
+
+    if (!token) {
+      authUser = null
+      applyAuthUserToUI(null)
+      syncDrawerAuthUI()
+      setAuthTab('login')
+      openAuthModal()
+      return
+    }
+
+    try {
+      const user = await getMe()
+      cacheUser(user)
+      authUser = user
+      applyAuthUserToUI(user)
+      syncDrawerAuthUI()
+      closeAuthModal()
+    } catch (err) {
+      clearAuth()
+      authUser = null
+      applyAuthUserToUI(null)
+      syncDrawerAuthUI()
+      setAuthTab('login')
+      openAuthModal()
+    }
+  }
+
+  if (authTabLogin) on(authTabLogin, 'click', (e) => (e.preventDefault(), setAuthTab('login')))
+  if (authTabRegister) on(authTabRegister, 'click', (e) => (e.preventDefault(), setAuthTab('register')))
+
+  if (authOverlay) on(authOverlay, 'click', () => {
+    const token = getAuthToken()
+    if (!token) {
+      clearAuth()
+      authUser = null
+      applyAuthUserToUI(null)
+      syncDrawerAuthUI()
+    }
+    closeAuthModal()
+  })
+
+  if (authCloseBtn) {
+    on(authCloseBtn, 'click', (e) => {
+      e.preventDefault()
+      const token = getAuthToken()
+      if (!token) {
+        clearAuth()
+        authUser = null
+        applyAuthUserToUI(null)
+        syncDrawerAuthUI()
+      }
+      closeAuthModal()
+    })
+  }
+
+  if (authGuestBtn) {
+    on(authGuestBtn, 'click', (e) => {
+      e.preventDefault()
+      clearAuth()
+      authUser = null
+      applyAuthUserToUI(null)
+      syncDrawerAuthUI()
+      closeAuthModal()
+      showToast('Misafir olarak devam ediliyor.')
+    })
+  }
+
+  if (profileGuestLoginBtnEl) {
+    on(profileGuestLoginBtnEl, 'click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (authUser) return
+      setAuthTab('login')
+      openAuthModal()
+    })
+  }
+
+  if (profileGuestRegisterBtnEl) {
+    on(profileGuestRegisterBtnEl, 'click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (authUser) return
+      setAuthTab('register')
+      openAuthModal()
+    })
+  }
+
+  window.addEventListener('deepcal:langchange', () => {
+    applyAuthUserToUI(authUser)
+    syncDrawerAuthUI()
+  })
+
+  if (authFormLogin) {
+    on(authFormLogin, 'submit', async (e) => {
+      e.preventDefault()
+      const formEl = e.currentTarget
+      if (authHintEl) authHintEl.textContent = ''
+      setAuthError(null)
+
+      setAuthFormProcessing(formEl, true)
+      try {
+        const email = qs('#deepcal-login-email')?.value?.trim()
+        const password = qs('#deepcal-login-password')?.value
+        if (!email || !password) throw new Error('Lütfen tüm alanları doldurun.')
+
+        const payload = await loginUser({ email, password })
+        const token = payload?.access_token
+        if (!token) throw new Error('Token alınamadı.')
+
+        setAuthToken(token)
+        const user = await getMe()
+        cacheUser(user)
+        authUser = user
+
+        applyAuthUserToUI(user)
+        syncDrawerAuthUI()
+
+        closeAuthModal()
+      } catch (err) {
+        setAuthError(err?.message || (getLanguage() === 'en' ? 'Login failed.' : 'Giriş başarısız.'))
+      } finally {
+        setAuthFormProcessing(formEl, false)
+      }
+    })
+  }
+
+  if (authFormRegister) {
+    on(authFormRegister, 'submit', async (e) => {
+      e.preventDefault()
+      const formEl = e.currentTarget
+      if (authHintEl) authHintEl.textContent = ''
+      setAuthError(null)
+
+      setAuthFormProcessing(formEl, true)
+      try {
+        const name = qs('#deepcal-register-name')?.value?.trim()
+        const email = qs('#deepcal-register-email')?.value?.trim()?.toLowerCase()
+        const password = qs('#deepcal-register-password')?.value
+        if (!name || !email || !password) throw new Error('Lütfen tüm alanları doldurun.')
+
+        const payload = await registerUser({ name, email, password })
+        const token = payload?.access_token
+        if (!token) throw new Error('Token alınamadı.')
+
+        setAuthToken(token)
+        const user = await getMe()
+        cacheUser(user)
+        authUser = user
+
+        applyAuthUserToUI(user)
+        syncDrawerAuthUI()
+
+        closeAuthModal()
+      } catch (err) {
+        setAuthError(
+          err?.message || (getLanguage() === 'en' ? 'Registration failed.' : 'Kayıt başarısız.')
+        )
+      } finally {
+        setAuthFormProcessing(formEl, false)
+      }
+    })
+  }
+
+  const logoutBtn = document.getElementById('deepcal-profile-logout-btn')
+  if (logoutBtn) {
+    on(logoutBtn, 'click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      clearAuth()
+      authUser = null
+      applyAuthUserToUI(null)
+      syncDrawerAuthUI()
+      setAuthTab('login')
+      openAuthModal()
+      showToast('Çıkış yapıldı.')
+    })
+  }
+
+  // Bootstrap after UI bindings are ready.
+  void bootstrapAuth()
 
   function getPortionMultiplier(portionLabel) {
     if (portionLabel === 'Küçük') return 0.75
@@ -417,23 +941,35 @@ function initStaticDashboard() {
 
   let isAnalyzing = false
 
-  if (langToggleBtn) {
-    on(langToggleBtn, 'click', (e) => {
+  function handleHeaderLangChange(nextLang) {
+    setLanguage(nextLang)
+    applyI18n()
+    syncHeaderLangSegment(nextLang)
+
+    // Upload butonunun metnini analiz durumuna göre güncelle.
+    setAnalyzeButtonLoading(isAnalyzing)
+
+    // Açık modal varsa, yeniden çizerek tüm metinleri anlık çevir.
+    const overlay = qs('#deepcal-nav-modal-overlay')
+    const isOpen = overlay && !overlay.classList.contains('hidden')
+    if (isOpen) {
+      if (activeResultMeal) openResultModal(activeResultMeal)
+      else if (activeNavKey) openNavModal(activeNavKey)
+    }
+  }
+
+  // Header segmented control: TR/ENG.
+  syncHeaderLangSegment()
+  if (headerLangTrBtn) {
+    on(headerLangTrBtn, 'click', (e) => {
       e?.preventDefault?.()
-      const next = getLanguage() === 'tr' ? 'en' : 'tr'
-      setLanguage(next)
-      applyI18n()
-
-      // Upload butonunun metnini analiz durumuna göre güncelle
-      setAnalyzeButtonLoading(isAnalyzing)
-
-      // Açık modal varsa, yeniden çizerek tüm metinleri anlık çevir
-      const overlay = qs('#deepcal-nav-modal-overlay')
-      const isOpen = overlay && !overlay.classList.contains('hidden')
-      if (isOpen) {
-        if (activeResultMeal) openResultModal(activeResultMeal)
-        else if (activeNavKey) openNavModal(activeNavKey)
-      }
+      handleHeaderLangChange('tr')
+    })
+  }
+  if (headerLangEnBtn) {
+    on(headerLangEnBtn, 'click', (e) => {
+      e?.preventDefault?.()
+      handleHeaderLangChange('en')
     })
   }
 
@@ -442,20 +978,7 @@ function initStaticDashboard() {
   })
 
   async function callAnalyzeApi(file) {
-    const form = new FormData()
-    form.append('image', file)
-
-    const res = await fetch('https://deepcal.onrender.com/analyze', {
-      method: 'POST',
-      body: form,
-    })
-
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text || t('ai.analyzeError'))
-    }
-
-    return res.json()
+    return analyzeMealImage(file)
   }
 
   on(fileInput, 'change', async () => {
@@ -497,7 +1020,7 @@ function initStaticDashboard() {
       console.error('Analiz Hatası Detayı:', err)
       isAnalyzing = false
       setAnalyzeButtonLoading(false)
-      showToast(t('ai.analyzeFailed'))
+      showToast(err?.message || t('ai.analyzeFailed'))
       fileInput.value = ''
     }
   })
@@ -946,6 +1469,154 @@ function initStaticDashboard() {
     `
   }
 
+  function renderHistoryFromLogs(logs) {
+    const lang = getLanguage()
+    const locale = lang === 'en' ? 'en-US' : 'tr-TR'
+
+    const slotOrder = ['Kahvaltı', 'Öğle', 'Akşam']
+    const slotLabelBySlot = {
+      Kahvaltı: t('history.slot.breakfast'),
+      Öğle: t('history.slot.lunch'),
+      Akşam: t('history.slot.dinner'),
+    }
+    const iconBySlot = {
+      Kahvaltı: '🍳',
+      Öğle: '🍛',
+      Akşam: '🌙',
+    }
+
+    function getSlotKeyByHour(hour) {
+      if (hour < 11) return 'Kahvaltı'
+      if (hour < 17) return 'Öğle'
+      return 'Akşam'
+    }
+
+    const dateMap = new Map() // dateKey -> entries[]
+    for (const entry of Array.isArray(logs) ? logs : []) {
+      if (!entry) continue
+      const createdAt = entry.created_at
+      const d = new Date(createdAt)
+      if (!Number.isFinite(d.getTime())) continue
+
+      const dateKey = getLocalDateKey(d)
+      const slot = getSlotKeyByHour(d.getHours())
+
+      const list = dateMap.get(dateKey) || []
+      list.push({
+        ...entry,
+        _createdAt: d,
+        _slot: slot,
+        _dateKey: dateKey,
+      })
+      dateMap.set(dateKey, list)
+    }
+
+    const dateKeys = Array.from(dateMap.keys()).sort().reverse()
+    if (!dateKeys.length) return renderEmptyState()
+
+    return `
+      <div class="mt-2 space-y-3">
+        ${dateKeys
+          .map((dateKey) => {
+            const entries = dateMap.get(dateKey) || []
+            const dateObj = new Date(dateKey + 'T00:00:00')
+            const dateLabel = dateObj.toLocaleDateString(locale, {
+              weekday: 'short',
+              year: 'numeric',
+              month: 'short',
+              day: '2-digit',
+            })
+
+            const totalForDay = entries.reduce((sum, x) => sum + Number(x.calories_kcal || 0), 0)
+
+            const slotsHtml = slotOrder
+              .map((slotKey) => {
+                const slotEntries = entries
+                  .filter((x) => x._slot === slotKey)
+                  .slice()
+                  .sort((a, b) => a._createdAt - b._createdAt)
+
+                if (!slotEntries.length) return ''
+
+                const slotTotal = slotEntries.reduce(
+                  (sum, x) => sum + Number(x.calories_kcal || 0),
+                  0
+                )
+
+                return `
+                  <div class="rounded-xl bg-white/50 ring-1 ring-slate-100/70 p-3">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <div class="h-9 w-9 rounded-2xl flex items-center justify-center bg-white/60 ring-1 ring-slate-100/80 shadow-[0_18px_60px_rgba(2,6,23,0.04)]">
+                          <span class="text-base">${iconBySlot[slotKey] || '🥗'}</span>
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-sm font-semibold text-slate-800">${slotLabelBySlot[slotKey] || slotKey}</div>
+                          <div class="text-[11px] text-slate-500 truncate">
+                            ${slotEntries.length} kayıt
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-sm font-extrabold text-slate-900 whitespace-nowrap">${fmtNumber(slotTotal, 0)} kcal</div>
+                    </div>
+
+                    <div class="mt-2 space-y-1">
+                      ${slotEntries
+                        .map((x) => {
+                          const timeText = x._createdAt.toLocaleTimeString(locale, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                          const name = x.food_name || '—'
+                          const kcal = fmtNumber(x.calories_kcal || 0, 0)
+                          return `
+                            <div class="flex items-center justify-between gap-3 text-xs">
+                              <div class="min-w-0 text-slate-700 truncate">
+                                <span class="text-slate-500">${timeText}</span>
+                                <span class="ml-2">${name}</span>
+                              </div>
+                              <div class="text-slate-900 font-semibold whitespace-nowrap">${kcal} kcal</div>
+                            </div>
+                          `
+                        })
+                        .join('')}
+                    </div>
+                  </div>
+                `
+              })
+              .filter(Boolean)
+              .join('')
+
+            return `
+              <div class="rounded-2xl bg-slate-50/60 px-3 py-3 ring-1 ring-slate-100/70">
+                <div class="flex items-center justify-between">
+                  <div class="text-sm font-semibold text-slate-800">${dateLabel}</div>
+                  <div class="text-xs text-slate-500">${fmtNumber(totalForDay, 0)} kcal</div>
+                </div>
+                <div class="mt-3 space-y-2">
+                  ${slotsHtml}
+                </div>
+              </div>
+            `
+          })
+          .join('')}
+      </div>
+    `
+  }
+
+  async function refreshHistoryModalContent() {
+    const body = qs('#deepcal-history-body')
+    if (!body) return
+
+    body.innerHTML = `<div class="text-sm text-slate-500">Yükleniyor...</div>`
+    try {
+      const logs = await getLogs()
+      body.innerHTML = renderHistoryFromLogs(logs)
+    } catch {
+      body.innerHTML = renderHistoryModal()
+    }
+  }
+
   function renderStatsModal() {
     const macros = getDailyMacros()
     const proteinPct = Math.round(clamp01(macros.protein_g / (GOALS.protein_g || 1)) * 100)
@@ -1025,7 +1696,18 @@ function initStaticDashboard() {
     } else if (key === 'settings') {
       openModal(t('nav.settings'), renderSettingsModal(), bindSettingsHandlers)
     } else if (key === 'history') {
-      openModal(t('nav.history'), renderHistoryModal())
+      const token = getAuthToken()
+      if (!token) {
+        openModal(t('nav.history'), renderHistoryModal())
+      } else {
+        openModal(
+          t('nav.history'),
+          `<div id="deepcal-history-body" class="mt-2 text-sm text-slate-600">Yükleniyor...</div>`,
+          async () => {
+            await refreshHistoryModalContent()
+          }
+        )
+      }
     } else if (key === 'stats') {
       openModal(t('nav.dailyStats'), renderStatsModal(), bindStatsHandlers)
     } else {
@@ -1874,10 +2556,7 @@ function render() {
             </div>
 
             <div class="relative z-10 px-10 py-8 text-center">
-              <div class="text-sm font-bold text-slate-800">Öğününüzü buraya ekleyin</div>
-              <div class="mt-1 text-xs font-medium text-slate-500">Fotoğraf çekin veya yükleyin</div>
-
-              <div class="mt-5 flex justify-center">
+              <div class="mt-2 flex justify-center">
                 <button id="cameraBtn" type="button"
                   class="group relative grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br from-purple-700 to-indigo-900 shadow-[0_8px_30px_rgba(124,58,237,0.5)] ring-1 ring-purple-300/30 transition hover:shadow-[0_10px_34px_rgba(124,58,237,0.56)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300">
                   <div class="pointer-events-none absolute -inset-4 rounded-full bg-purple-500/18 blur-2xl opacity-90 animate-dc-breathe"></div>
@@ -2060,16 +2739,6 @@ function render() {
         <section class="w-full">
           <div class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 dark:text-slate-400">Hesap & Hedefler</div>
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden dark:bg-slate-800 dark:border-slate-700">
-            <div class="flex justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-700">
-              <div class="flex items-center gap-3">
-                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-                  <i data-lucide="user" class="h-5 w-5"></i>
-                </span>
-                <div class="text-sm font-medium text-slate-800 dark:text-slate-200">Kişisel Bilgiler</div>
-              </div>
-              <i data-lucide="chevron-right" class="h-5 w-5 text-slate-400 dark:text-slate-500"></i>
-            </div>
-
             <div class="flex justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors">
               <div class="flex items-center gap-3">
                 <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
@@ -2435,6 +3104,20 @@ function render() {
         raw_ai_response: lastRawAi,
       })
       setSheetMessage('Kaydedildi.')
+      // Authlı kullanıcı için streak UI'larını anında güncelle.
+      try {
+        const meUser = await getMe()
+        if (meUser) {
+          authUser = meUser
+          cacheUser(meUser)
+          applyAuthUserToUI(meUser)
+          syncDrawerAuthUI()
+        }
+      } catch {
+        // Guest ise veya /me başarısızsa rozeti dokunmadan geç.
+      }
+        // Kullanıcı modalı açıksa geçmişi otomatik güncelle.
+        void refreshHistoryModalContent()
       setTimeout(() => {
         closeSheet()
         if (route !== 'home') setRoute('home')
