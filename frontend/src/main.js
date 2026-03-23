@@ -445,7 +445,7 @@ function initStaticDashboard() {
     const form = new FormData()
     form.append('image', file)
 
-    const res = await fetch('http://127.0.0.1:8000/analyze', {
+    const res = await fetch('https://deepcal.onrender.com/analyze', {
       method: 'POST',
       body: form,
     })
