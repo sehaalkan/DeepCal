@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeepCal</title>
+    <style>
+      @keyframes deepcalModalPop {
+        0% {
+          opacity: 0;
+          transform: translateY(10px) scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .deepcal-modal-pop {
+        animation: deepcalModalPop 240ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+      }
+
+      @keyframes deepcalProfilePop {
+        0% {
+          opacity: 0;
+          transform: translateY(-6px) scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .deepcal-profile-pop {
+        animation: deepcalProfilePop 180ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+      }
+    </style>
+  </head>
+  <body class="min-h-svh">
+    <div class="min-h-screen w-full bg-[#F8F9FA] flex items-center justify-center px-4 py-6">
+      <div class="w-full max-w-5xl rounded-[32px] bg-[#F6F7FB] shadow-[0_20px_60px_rgba(15,23,42,0.10)] border border-slate-100/70 p-5 sm:p-8 md:p-10">
+        <!-- ÜST BAR -->
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <!-- Marka amblemi -->
+            <div class="h-11 w-11 rounded-[18px] bg-white/70 ring-1 ring-slate-200/80 shadow-[0_20px_50px_rgba(15,23,42,0.06)] flex items-center justify-center">
+              <svg viewBox="0 0 64 64" class="h-6 w-6" aria-hidden="true">
+                <defs>
+                  <linearGradient id="deepcalLogoGrad" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#fb923c" />
+                    <stop offset="0.55" stop-color="#a855f7" />
+                    <stop offset="1" stop-color="#6366f1" />
+                  </linearGradient>
+                </defs>
+                <!-- Camera vizörü çerçevesi -->
+                <rect x="18" y="14" width="28" height="32" rx="10" fill="none" stroke="url(#deepcalLogoGrad)" stroke-width="3" />
+                <path
+                  d="M18 24 C15 28, 15 36, 18 40"
+                  fill="none"
+                  stroke="url(#deepcalLogoGrad)"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  opacity="0.65"
+                />
+                <path
+                  d="M46 24 C49 28, 49 36, 46 40"
+                  fill="none"
+                  stroke="url(#deepcalLogoGrad)"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  opacity="0.65"
+                />
+                <!-- Yaprak / alev -->
+                <path
+                  d="M32 20
+                     C28 26, 26 29, 26 34
+                     C26 41, 31 46, 32 46
+                     C33 46, 38 41, 38 34
+                     C38 29, 36 26, 32 20 Z"
+                  fill="url(#deepcalLogoGrad)"
+                />
+                <path
+                  d="M32 25
+                     C30 29, 30 31, 30 34
+                     C30 37, 31 39, 32 41"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  opacity="0.45"
+                />
+              </svg>
+            </div>
+
+            <div class="text-2xl font-extrabold tracking-tight text-slate-900">
+              DeepCal
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <!-- Dil değiştirme -->
+            <button
+              id="deepcal-lang-toggle"
+              type="button"
+              class="inline-flex h-11 px-4 items-center justify-center rounded-2xl bg-white/70 ring-1 ring-slate-200/80 shadow-[0_20px_50px_rgba(15,23,42,0.06)] hover:bg-white transition transform-gpu"
+              aria-label="Dil değiştir"
+              data-i18n-aria-label="header.changeLanguage"
+            >
+              <span class="text-sm font-semibold text-slate-800">TR / EN</span>
+            </button>
+
+            <!-- Hamburger / Side Drawer Tetikleyici -->
+            <button
+              id="deepcal-menu-btn"
+              type="button"
+              class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/70 ring-1 ring-slate-200/80 shadow-[0_20px_50px_rgba(15,23,42,0.06)] hover:bg-white transition transform-gpu"
+              aria-label="Menü"
+              data-i18n-aria-label="header.menu"
+            >
+              <svg viewBox="0 0 24 24" class="h-6 w-6 text-slate-800" aria-hidden="true">
+                <path fill="currentColor" d="M4 6.75A.75.75 0 0 1 4.75 6h14.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 6.75Zm0 5.25A.75.75 0 0 1 4.75 11.25h14.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 12Zm0 5.25A.75.75 0 0 1 4.75 16.5h14.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 17.25Z" />
+              </svg>
+            </button>
+
+            <!-- Profil trigger + popover -->
+            <div class="relative">
+              <button
+                id="deepcal-profile-btn"
+                type="button"
+                class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-500 ring-1 ring-purple-200 shadow-[0_20px_50px_rgba(124,58,237,0.18)] hover:brightness-105 transition transform-gpu"
+                aria-label="Profil"
+                aria-expanded="false"
+                data-i18n-aria-label="header.profile"
+              >
+                <span class="text-sm font-semibold text-white">S</span>
+              </button>
+
+              <div
+                id="deepcal-profile-backdrop"
+                class="fixed inset-0 z-[105] opacity-0 pointer-events-none bg-black/20 backdrop-blur-md transition-opacity duration-200"
+              ></div>
+
+              <div
+                id="deepcal-profile-popover"
+                class="hidden absolute right-0 top-full mt-3 z-[106] w-80 rounded-3xl bg-white/90 backdrop-blur-md shadow-[0_30px_90px_rgba(2,6,23,0.25)] ring-1 ring-slate-100/80 p-5"
+                role="dialog"
+                aria-label="Profil menüsü"
+                data-i18n-aria-label="header.profileMenu"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0">
+                    <div class="text-sm md:text-base font-bold tracking-tight text-slate-900">
+                      Seha Yaren Alkan
+                    </div>
+                    <div class="mt-1 text-xs text-slate-500 truncate">seha@deepcal.com</div>
+                  </div>
+
+                  <div class="h-11 w-11 rounded-2xl bg-purple-50 ring-1 ring-purple-100 flex items-center justify-center shadow-[0_12px_40px_rgba(124,58,237,0.12)]">
+                    <span class="text-sm font-bold text-purple-700">S</span>
+                  </div>
+                </div>
+
+                <div class="mt-3 flex gap-2">
+                  <span class="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-100">
+                    <span class="leading-none">🔥</span>
+                    <span data-i18n="profile.streakBadge">2 Gün Seri</span>
+                  </span>
+                  <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                    <span class="leading-none">✨</span>
+                    <span data-i18n="profile.proMember">Pro Üye</span>
+                  </span>
+                </div>
+
+                <div class="mt-4 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-100/70 bg-white/60 hover:bg-white transition"
+                    aria-label="Hesap Bilgileri"
+                    data-i18n-aria-label="header.accountInfo"
+                  >
+                    <svg viewBox="0 0 24 24" class="h-4 w-4 text-slate-600" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span data-i18n="header.accountInfo">Hesap Bilgileri</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-100/70 bg-white/60 hover:bg-white transition"
+                    aria-label="Veri ve Gizlilik"
+                    data-i18n-aria-label="header.privacy"
+                  >
+                    <svg viewBox="0 0 24 24" class="h-4 w-4 text-slate-600" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <ellipse cx="12" cy="5" rx="8" ry="3" />
+                      <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
+                      <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+                    </svg>
+                    <span data-i18n="header.privacy">Veri ve Gizlilik</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-100/70 bg-white/60 hover:bg-white transition"
+                    aria-label="Yardım ve Destek"
+                    data-i18n-aria-label="header.helpSupport"
+                  >
+                    <svg viewBox="0 0 24 24" class="h-4 w-4 text-slate-600" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4" />
+                      <path d="M12 17h.01" />
+                    </svg>
+                    <span data-i18n="header.helpSupport">Yardım &amp; Destek</span>
+                  </button>
+                </div>
+
+                <div class="mt-4 border-t border-slate-100/80 pt-4">
+                  <button
+                    id="deepcal-profile-logout-btn"
+                    type="button"
+                    class="w-full rounded-2xl bg-white/60 px-4 py-2.5 text-sm font-semibold text-rose-500 ring-1 ring-rose-100 hover:bg-white transition"
+                    aria-label="Çıkış Yap"
+                    data-i18n-aria-label="header.logout"
+                  >
+                    <span data-i18n="header.logout">Çıkış Yap</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sağdan kayan yan menü (Side Drawer) -->
+        <div
+          id="deepcal-drawer-overlay"
+          class="fixed inset-0 z-[99] hidden bg-slate-900/20 backdrop-blur-sm transition-opacity"
+        ></div>
+        <div
+          id="deepcal-side-drawer"
+          class="fixed right-0 top-0 z-[100] h-full w-full max-w-[320px] translate-x-full transition-transform duration-300 ease-out bg-white/70 backdrop-blur-md shadow-[0_30px_90px_rgba(2,6,23,0.20)] ring-1 ring-slate-100/70 rounded-l-3xl overflow-hidden"
+          aria-label="Yan menü"
+          data-i18n-aria-label="header.drawer"
+        >
+          <div class="p-5 border-b border-slate-100/80">
+            <div class="flex items-center justify-end">
+              <button
+                id="deepcal-drawer-close-btn"
+                type="button"
+                class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/70 ring-1 ring-slate-200/80 hover:bg-white transition"
+                aria-label="Kapat"
+                data-i18n-aria-label="header.close"
+              >
+                <svg viewBox="0 0 24 24" class="h-5 w-5 text-slate-700" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7A1 1 0 1 0 5.7 7.1l4.9 4.9-4.9 4.9a1 1 0 1 0 1.4 1.4l4.9-4.9 4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4Z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-5 space-y-5 overflow-y-auto h-[calc(100%-72px)]">
+            <!-- Menü Listesi -->
+            <div class="space-y-2">
+              <button
+                type="button"
+                data-deepcal-nav="stats"
+                class="w-full flex items-center gap-3 rounded-2xl bg-white/60 px-4 py-3 ring-1 ring-slate-100/70 hover:bg-white/90 transition"
+              >
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-700 ring-1 ring-purple-100">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M5 20h14a1 1 0 0 0 1-1V7.414a1 1 0 0 0-.293-.707l-3.414-3.414A1 1 0 0 0 15.586 3H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1Zm11-16.586L18.414 7H16a1 1 0 0 1-1-1V4.414ZM7 13h4a1 1 0 1 1 0 2H7a1 1 0 0 1 0-2Zm0-4h10a1 1 0 1 1 0 2H7a1 1 0 0 1 0-2Z"
+                    />
+                  </svg>
+                </span>
+                <span class="text-sm font-semibold text-slate-800" data-i18n="nav.dailyStats">Günlük İstatistikler</span>
+              </button>
+
+              <button
+                type="button"
+                data-deepcal-nav="water"
+                class="w-full flex items-center gap-3 rounded-2xl bg-white/60 px-4 py-3 ring-1 ring-slate-100/70 hover:bg-white/90 transition"
+              >
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M12 2s7 8 7 13a7 7 0 1 1-14 0C5 10 12 2 12 2Zm0 18a5 5 0 0 0 5-5c0-2.2-2-5.5-5-9.5-3 4-5 7.3-5 9.5a5 5 0 0 0 5 5Z"
+                    />
+                  </svg>
+                </span>
+                <span class="text-sm font-semibold text-slate-800" data-i18n="nav.water">Su Takibi</span>
+              </button>
+
+              <button
+                type="button"
+                data-deepcal-nav="history"
+                class="w-full flex items-center gap-3 rounded-2xl bg-white/60 px-4 py-3 ring-1 ring-slate-100/70 hover:bg-white/90 transition"
+              >
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-700 ring-1 ring-purple-100">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M12 1a9 9 0 1 0 0 18A9 9 0 0 0 12 1Zm1 5v4.2l3 1.8-.9 1.5L11 12V6h2Z"
+                    />
+                  </svg>
+                </span>
+                <span class="text-sm font-semibold text-slate-800" data-i18n="nav.history">Öğün Geçmişi</span>
+              </button>
+
+              <button
+                type="button"
+                data-deepcal-nav="settings"
+                class="w-full flex items-center gap-3 rounded-2xl bg-white/60 px-4 py-3 ring-1 ring-slate-100/70 hover:bg-white/90 transition"
+              >
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.15 7.15 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 1h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 7.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.82 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.4 1.05.71 1.63.94l.36 2.54c.04.24.25.42.49.42h3.8c.24 0 .45-.18.49-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96c.21.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"
+                    />
+                  </svg>
+                </span>
+                <span class="text-sm font-semibold text-slate-800" data-i18n="nav.settings">Profil &amp; Hedefler</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar içerik Modal -->
+        <div
+          id="deepcal-nav-modal-overlay"
+          class="fixed inset-0 z-[110] hidden bg-slate-900/40 backdrop-blur-sm transition-opacity"
+        ></div>
+        <div
+          id="deepcal-nav-modal"
+          class="fixed inset-0 z-[111] hidden items-center justify-center p-4"
+          aria-label="İçerik modalı"
+          data-i18n-aria-label="header.contentModal"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div id="deepcal-nav-modal-card" class="w-full max-w-md rounded-[28px] bg-white/90 backdrop-blur-md shadow-[0_30px_90px_rgba(2,6,23,0.25)] ring-1 ring-slate-100/80 overflow-hidden">
+            <div class="relative p-6">
+              <button
+                id="deepcal-nav-modal-close-btn"
+                type="button"
+                class="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 ring-1 ring-slate-200/70 hover:bg-slate-50 transition"
+                aria-label="Kapat"
+                data-i18n-aria-label="header.close"
+              >
+                <svg viewBox="0 0 24 24" class="h-5 w-5 text-slate-700" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7A1 1 0 1 0 5.7 7.1l4.9 4.9-4.9 4.9a1 1 0 1 0 1.4 1.4l4.9-4.9 4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4Z"
+                  />
+                </svg>
+              </button>
+
+              <div id="deepcal-nav-modal-title" class="text-xl font-extrabold text-slate-900"> </div>
+              <div id="deepcal-nav-modal-body" class="mt-3 text-sm text-slate-600 leading-relaxed"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- İki sütunlu layout -->
+        <div class="grid grid-cols-1 md:grid-cols-[1.1fr,1fr] gap-6 md:gap-8">
+          <!-- SOL SÜTUN -->
+          <div class="flex flex-col gap-5">
+            <!-- Karşılama -->
+            <div class="mt-1">
+              <div class="text-xl md:text-2xl font-semibold text-slate-900" data-i18n="home.welcomeTitle">
+                Hoşgeldin, Seha!
+              </div>
+              <div class="mt-1 text-sm text-slate-500" data-i18n="home.welcomeDate">
+                16 Mart 2026 Perşembe
+              </div>
+            </div>
+    
+            <!-- Hemen Öğününü Çek Kartı -->
+            <div class="relative mt-2 rounded-3xl bg-white shadow-[0_22px_60px_rgba(148,163,184,0.45)] ring-1 ring-slate-100/80 overflow-hidden">
+              <div class="absolute -top-24 -right-16 h-52 w-52 rounded-full bg-gradient-to-br from-orange-400/40 via-fuchsia-500/40 to-purple-600/50 blur-3xl opacity-70"></div>
+              <div class="relative p-6 space-y-4">
+                <div class="flex flex-col gap-1">
+                  <div class="inline-flex items-center gap-2 rounded-full bg-slate-100/70 px-3 py-1 text-xs font-medium text-slate-600 w-fit shadow-[0_4px_16px_rgba(148,163,184,0.55)]">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    <span data-i18n="home.heroTag">AI Destekli Analiz</span>
+                  </div>
+                  <h2 class="mt-2 text-lg md:text-xl font-bold text-slate-900" data-i18n="home.heroTitle">
+                    Hemen Öğününü Çek &amp; Analiz Et
+                  </h2>
+                  <p class="text-xs md:text-sm text-slate-500 leading-relaxed" data-i18n="home.heroDesc">
+                    Yemeğinin fotoğrafını çekerek veya yükleyerek besin değerlerini hemen gör.
+                  </p>
+                </div>
+    
+                <!-- Telefon + tabak illüstrasyonu -->
+                <div class="mt-3 flex items-center gap-4">
+                  <div class="relative h-20 w-20 rounded-[26px] bg-gradient-to-br from-slate-900 to-slate-800 shadow-[0_18px_40px_rgba(15,23,42,0.8)] ring-2 ring-slate-900/60 flex items-center justify-center">
+                    <div class="absolute inset-2 rounded-[22px] bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center">
+                      <div class="h-10 w-10 rounded-full bg-slate-900/90 flex items-center justify-center">
+                        <div class="h-6 w-6 rounded-full bg-gradient-to-br from-emerald-400 via-amber-300 to-rose-400 shadow-[0_0_0_1px_rgba(15,23,42,0.6)]"></div>
+                      </div>
+                    </div>
+                    <div class="absolute -bottom-4 -right-4 h-11 w-11 rounded-full bg-white shadow-[0_10px_28px_rgba(15,23,42,0.30)] flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" class="h-5 w-5 text-slate-900" aria-hidden="true">
+                        <path
+                          fill="currentColor"
+                          d="M12 4a4 4 0 0 1 3.864 2.88L16 7h2a3 3 0 0 1 2.995 2.824L21 10v6a3 3 0 0 1-2.824 2.995L18 19H6a3 3 0 0 1-2.995-2.824L3 16v-6a3 3 0 0 1 2.824-2.995L6 7h2l.136-.12A4 4 0 0 1 12 4Zm0 3a3 3 0 1 0 0 6a3 3 0 0 0 0-6Z"
+                        ></path>
+                      </svg>
+                    </div>
+                  </div>
+    
+                  <div class="flex-1 text-xs md:text-sm text-slate-500 space-y-1">
+                    <p>
+                      <span class="font-semibold text-slate-800" data-i18n="home.visionBrand">DeepCal Vision</span>
+                      <span data-i18n="home.visionLine1">tabaktaki öğünleri akıllıca algılar.</span>
+                    </p>
+                    <p data-i18n="home.visionLine2">Kalori, protein, yağ ve karbonhidrat dağılımını anında gör.</p>
+                  </div>
+                </div>
+    
+                <!-- CTA butonu -->
+                <div class="pt-2">
+                  <button
+                    type="button"
+                    id="deepcal-upload-btn"
+                    class="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(79,70,229,0.65)] hover:from-purple-700 hover:via-indigo-700 hover:to-sky-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300"
+                  >
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
+                      <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
+                        <path
+                          fill="currentColor"
+                          d="M9 3a2 2 0 0 0-1.789 1.106L6.618 5.5H5a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-9a3 3 0 0 0-3-3h-1.618l-.593-1.394A2 2 0 0 0 15 3H9Zm3 6a5 5 0 1 1 0 10a5 5 0 0 1 0-10Z"
+                        ></path>
+                      </svg>
+                    </span>
+                    <span data-i18n="home.upload">Fotoğraf Çek / Yükle</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+    
+          <!-- SAĞ SÜTUN -->
+          <div class="flex flex-col gap-5">
+            <!-- Bugünün Özeti Kartı -->
+            <div class="rounded-3xl bg-white shadow-[0_18px_55px_rgba(148,163,184,0.45)] ring-1 ring-slate-100/80 p-5 space-y-5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 shadow-inner shadow-white">
+                    <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
+                      <path
+                        fill="currentColor"
+                        d="M5 3h14a2 2 0 0 1 2 2v2H3V5a2 2 0 0 1 2-2Zm-2 7h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm5 2v2H6v-2h2Zm5 0v2h-2v-2h2Zm5 0v2h-2v-2h2Z"
+                      ></path>
+                    </svg>
+                  </span>
+                  <div class="text-sm font-semibold text-slate-900">
+                    <span data-i18n="home.todaySummary">Bugünün Özeti</span>
+                  </div>
+                </div>
+                <div class="text-xs text-slate-400" data-i18n="home.lessMore">Less → More</div>
+              </div>
+    
+              <!-- Haftalık ısı haritası -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-[11px] text-slate-500">
+                  <span data-i18n="home.weeklyActivity">Haftalık Aktivite</span>
+                  <span class="flex items-center gap-1">
+                    <span class="h-3 w-3 rounded-sm bg-slate-100 border border-slate-200"></span>
+                    <span class="h-3 w-3 rounded-sm bg-purple-400"></span>
+                  </span>
+                </div>
+                <div class="flex items-end gap-1.5 pt-1">
+                  <!-- Gün kutuları -->
+                  <div class="flex flex-col items-center gap-1">
+                    <div class="h-7 w-7 rounded-md bg-purple-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_20px_rgba(148,163,184,0.55)]"></div>
+                    <span class="text-[11px] text-slate-500">P</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1">
+                    <div class="h-7 w-7 rounded-md bg-purple-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_20px_rgba(148,163,184,0.55)]"></div>
+                    <span class="text-[11px] text-slate-500">S</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1">
+                    <div class="h-7 w-7 rounded-md bg-purple-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_20px_rgba(148,163,184,0.55)]"></div>
+                    <span class="text-[11px] text-slate-500">Ç</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1">
+                    <div class="h-7 w-7 rounded-md bg-purple-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_20px_rgba(148,163,184,0.55)]"></div>
+                    <span class="text-[11px] text-slate-500">P</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1">
+                    <div class="h-7 w-7 rounded-md bg-purple-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_20px_rgba(148,163,184,0.55)]"></div>
+                    <span class="text-[11px] text-slate-500">C</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1">
+                    <div class="h-7 w-7 rounded-md bg-purple-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_20px_rgba(148,163,184,0.55)]"></div>
+                    <span class="text-[11px] text-slate-500">C</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1">
+                    <div class="h-7 w-7 rounded-md bg-purple-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_20px_rgba(148,163,184,0.55)]"></div>
+                    <span class="text-[11px] text-slate-500">C</span>
+                  </div>
+                </div>
+              </div>
+    
+              <!-- Seri durumu -->
+              <div class="mt-2 flex items-center justify-between rounded-2xl bg-slate-50/80 px-4 py-3 shadow-inner shadow-white">
+                <div class="flex items-center gap-3">
+                  <div class="relative h-9 w-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center shadow-[0_12px_30px_rgba(248,181,0,0.65)]">
+                    <div class="absolute inset-1 rounded-2xl bg-amber-50/90 flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" class="h-5 w-5 text-amber-600" aria-hidden="true">
+                        <path
+                          fill="currentColor"
+                          d="M12 2c3 3 4 5.5 4 8a6 6 0 0 1-12 0c0-2.5 1-5 4-8l2-2l2 2Z"
+                        ></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-xs font-semibold text-slate-700">
+                      <span data-i18n="home.streakContinueTitle">Seri Devam Ediyor</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500">
+                      <span data-i18n="home.streakContinueDesc">Son 2 gündür hedeflerini tutturuyorsun.</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-slate-400" data-i18n="home.streakLabel">Seri</div>
+                  <div class="text-lg font-bold text-slate-900" data-i18n="home.streakValue">2 Gün</div>
+                </div>
+              </div>
+            </div>
+    
+            <!-- Hızlı Kayıt & Son Öğünler Kartı -->
+            <div class="rounded-3xl bg-white shadow-[0_18px_55px_rgba(148,163,184,0.45)] ring-1 ring-slate-100/80 p-5 space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex flex-col">
+                  <div class="text-sm font-semibold text-slate-900">
+                    <span data-i18n="home.quickRegisterTitle">Hızlı Kayıt &amp; Son Öğünler</span>
+                  </div>
+                  <div class="text-[11px] text-slate-500">
+                    <span data-i18n="home.quickRegisterDesc">Sık yediklerini tek dokunuşla ekle.</span>
+                  </div>
+                </div>
+              </div>
+    
+              <div class="space-y-3 pt-1">
+                <!-- Öğün 1 -->
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50/60 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                  <div class="flex items-center gap-3">
+                    <div class="h-9 w-9 rounded-2xl flex items-center justify-center shadow-[0_10px_25px_rgba(148,163,184,0.45)] ring-1 ring-slate-100 bg-orange-100 text-orange-500">
+                      <span class="text-base">🍕</span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-xs font-semibold text-slate-800">
+                        <span data-i18n="home.fast.sucukluPizza">Sucuklu Pizza</span>
+                      </span>
+                      <span class="text-[11px] text-slate-500">
+                        520 kcal
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    data-fast-id="sucuklu_pizza"
+                    data-fast-kcal="520"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white text-base font-bold shadow-[0_8px_20px_rgba(16,185,129,0.65)] ring-1 ring-emerald-300 hover:bg-emerald-600 transition"
+                  >
+                    +
+                  </button>
+                </div>
+    
+                <!-- Öğün 2 -->
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50/60 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                  <div class="flex items-center gap-3">
+                    <div class="h-9 w-9 rounded-2xl flex items-center justify-center shadow-[0_10px_25px_rgba(148,163,184,0.45)] ring-1 ring-slate-100 bg-emerald-100 text-emerald-500">
+                      <span class="text-base">🍏</span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-xs font-semibold text-slate-800">
+                        <span data-i18n="home.fast.greenApple">Yeşil Elma</span>
+                      </span>
+                      <span class="text-[11px] text-slate-500">
+                        95 kcal
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    data-fast-id="green_apple"
+                    data-fast-kcal="95"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white text-base font-bold shadow-[0_8px_20px_rgba(16,185,129,0.65)] ring-1 ring-emerald-300 hover:bg-emerald-600 transition"
+                  >
+                    +
+                  </button>
+                </div>
+    
+                <!-- Öğün 3 -->
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50/60 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                  <div class="flex items-center gap-3">
+                    <div class="h-9 w-9 rounded-2xl flex items-center justify-center shadow-[0_10px_25px_rgba(148,163,184,0.45)] ring-1 ring-slate-100 bg-sky-100 text-sky-500">
+                      <span class="text-base">☕</span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-xs font-semibold text-slate-800">
+                        <span data-i18n="home.fast.filteredCoffee">Filtre Kahve</span>
+                      </span>
+                      <span class="text-[11px] text-slate-500">
+                        15 kcal
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    data-fast-id="filtered_coffee"
+                    data-fast-kcal="15"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white text-base font-bold shadow-[0_8px_20px_rgba(16,185,129,0.65)] ring-1 ring-emerald-300 hover:bg-emerald-600 transition"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- SAĞ SÜTUN SONU -->
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      (function () {
+        const menuBtn = document.getElementById('deepcal-menu-btn')
+        const drawerOverlay = document.getElementById('deepcal-drawer-overlay')
+        const drawerPanel = document.getElementById('deepcal-side-drawer')
+        const drawerCloseBtn = document.getElementById('deepcal-drawer-close-btn')
+
+        const profileBtn = document.getElementById('deepcal-profile-btn')
+        const profilePopover = document.getElementById('deepcal-profile-popover')
+        const profileBackdrop = document.getElementById('deepcal-profile-backdrop')
+        const profileLogoutBtn = document.getElementById('deepcal-profile-logout-btn')
+
+        function closeDrawer() {
+          if (!drawerPanel) return
+          drawerPanel.classList.add('translate-x-full')
+          if (drawerOverlay) drawerOverlay.classList.add('hidden')
+        }
+
+        function openDrawer() {
+          if (!drawerPanel) return
+          drawerPanel.classList.remove('translate-x-full')
+          if (drawerOverlay) {
+            drawerOverlay.classList.remove('hidden')
+          }
+        }
+
+        function isDrawerOpen() {
+          return drawerPanel && !drawerPanel.classList.contains('translate-x-full')
+        }
+
+        let profileCloseTimer = null
+
+        function closePopover() {
+          if (!profilePopover) return
+          profilePopover.classList.remove('deepcal-profile-pop')
+          profileBtn?.setAttribute?.('aria-expanded', 'false')
+
+          if (profileBackdrop) {
+            profileBackdrop.classList.add('opacity-0', 'pointer-events-none')
+            profileBackdrop.classList.remove('opacity-100', 'pointer-events-auto')
+          }
+
+          // Kapanırken ani "hidden" yerine kısa gecikme ile daha akıcı his
+          if (profileCloseTimer) clearTimeout(profileCloseTimer)
+          profileCloseTimer = setTimeout(() => {
+            profilePopover?.classList.add('hidden')
+          }, 160)
+        }
+
+        function openPopover() {
+          if (!profilePopover) return
+          if (profileCloseTimer) clearTimeout(profileCloseTimer)
+          profileCloseTimer = null
+          if (profileBackdrop) {
+            profileBackdrop.classList.remove('opacity-0', 'pointer-events-none')
+            profileBackdrop.classList.add('opacity-100', 'pointer-events-auto')
+          }
+          profilePopover.classList.remove('hidden')
+          profileBtn?.setAttribute?.('aria-expanded', 'true')
+
+          // Animasyonu her açılışta yeniden başlat
+          profilePopover.classList.remove('deepcal-profile-pop')
+          void profilePopover.offsetWidth
+          profilePopover.classList.add('deepcal-profile-pop')
+        }
+
+        function togglePopover() {
+          if (!profilePopover || !profileBtn) return
+          const shouldOpen = profilePopover.classList.contains('hidden')
+          if (shouldOpen) openPopover()
+          else closePopover()
+        }
+
+        menuBtn?.addEventListener('click', (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          closePopover()
+          if (isDrawerOpen()) closeDrawer()
+          else openDrawer()
+        })
+
+        drawerCloseBtn?.addEventListener('click', (e) => {
+          e.preventDefault()
+          closeDrawer()
+        })
+
+        drawerOverlay?.addEventListener('click', () => closeDrawer())
+
+        profileBtn?.addEventListener('click', (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          closeDrawer()
+          togglePopover()
+        })
+
+        profileLogoutBtn?.addEventListener('click', (e) => {
+          e.preventDefault()
+          closePopover()
+          // MVP: Demo. Gerçek logout akışı sonra bağlanır.
+        })
+
+        // Dışarı tıklandığında ikisi de kapanır
+        document.addEventListener('click', (e) => {
+          const t = e.target
+
+          if (drawerPanel && isDrawerOpen()) {
+            const clickedInsideDrawer = drawerPanel.contains(t)
+            const clickedMenuBtn = menuBtn && menuBtn.contains(t)
+            if (!clickedInsideDrawer && !clickedMenuBtn) closeDrawer()
+          }
+        })
+
+        profileBackdrop?.addEventListener('click', () => closePopover())
+
+        // Escape ile kapatma
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return
+          closeDrawer()
+          closePopover()
+        })
+      })()
+    </script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

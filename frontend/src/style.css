@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-[#F3F4F6] text-slate-800 antialiased;
+  }
+}
+
+@layer components {
+  .dc-icon-btn {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-full bg-white ring-1 ring-slate-200/80 shadow-[0_20px_50px_rgba(0,0,0,0.04)] transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400;
+  }
+
+  .dc-chip {
+    @apply inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1 text-sm text-indigo-700 ring-1 ring-purple-200;
+  }
+
+  .dc-primary-btn {
+    @apply inline-flex items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-indigo-800 px-5 py-2.5 text-sm font-medium text-white shadow-[0_20px_50px_rgba(0,0,0,0.06)] transition hover:from-purple-700 hover:to-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .dc-secondary-btn {
+    @apply inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200/80 shadow-[0_20px_50px_rgba(0,0,0,0.04)] transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+}
+
+@layer utilities {
+  @keyframes dc-breathe {
+    0% {
+      transform: scale(0.92);
+      opacity: 0.45;
+      filter: blur(18px);
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 0.9;
+      filter: blur(26px);
+    }
+    100% {
+      transform: scale(0.92);
+      opacity: 0.45;
+      filter: blur(18px);
+    }
+  }
+
+  .animate-dc-breathe {
+    animation: dc-breathe 2.8s ease-in-out infinite;
+  }
+
+  .dc-ai-watermark {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='none' stroke='%230F172A' stroke-opacity='0.35' stroke-width='2'%3E%3Cg transform='translate(24 28) rotate(-12)'%3E%3Cpath d='M34 18c-9 0-16 7-16 16 0 13 16 26 16 26s16-13 16-26c0-9-7-16-16-16Z'/%3E%3Cpath d='M34 23c-6 0-11 5-11 11'/%3E%3C/g%3E%3Cg transform='translate(150 22) rotate(16)'%3E%3Cpath d='M18 14c0-6 4-10 10-10 6 0 10 4 10 10 0 12-10 18-10 18S18 26 18 14Z'/%3E%3Cpath d='M28 7v5'/%3E%3C/g%3E%3Cg transform='translate(42 150) rotate(10)'%3E%3Cpath d='M18 10h44c0 28-12 46-22 52C30 56 18 38 18 10Z'/%3E%3Cpath d='M24 18h32'/%3E%3C/g%3E%3Cg transform='translate(156 150) rotate(-14)'%3E%3Cpath d='M14 34c22-22 44-22 66 0-22 22-44 22-66 0Z'/%3E%3Cpath d='M14 34c22 10 44 10 66 0'/%3E%3Ccircle cx='44' cy='34' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 240px 240px;
+  }
+
+  @keyframes slide-up {
+    0% {
+      transform: translateY(100%);
+      opacity: 0.98;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 280ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  }
+}
