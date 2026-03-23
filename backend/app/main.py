@@ -106,6 +106,11 @@ def health():
     return {"ok": True, "env": settings.app_env}
 
 
+@app.get("/")
+def read_root():
+    return {"status": "DeepCal API is alive and kicking!"}
+
+
 @app.post("/register", response_model=TokenResponse)
 def register(req: UserRegisterRequest):
     email = req.email.strip().lower()
