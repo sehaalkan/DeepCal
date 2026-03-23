@@ -1,11 +1,6 @@
 import { t } from './i18n.js'
 
-const API_BASE_CANDIDATES = (() => {
-  const fromEnv =
-    (import.meta?.env?.VITE_API_URL || import.meta?.env?.VITE_API_BASE || '').trim()
-  const defaults = ['http://localhost:8000', 'http://127.0.0.1:8000']
-  return fromEnv ? [fromEnv, ...defaults.filter((v) => v !== fromEnv)] : defaults
-})()
+const API_BASE_CANDIDATES = ['https://deepcal.onrender.com']
 const AUTH_TOKEN_KEY = 'dc_auth_token_v1'
 const API_TIMEOUT_MS = 12000
 
