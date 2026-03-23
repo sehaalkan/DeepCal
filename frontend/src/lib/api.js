@@ -1,6 +1,8 @@
 import { t } from './i18n.js'
 
-const API_BASE_CANDIDATES = ['https://deepcal.onrender.com']
+/** Tüm API istekleri yalnızca bu Render taban adresine gider (fallback yok). */
+export const API_URL = 'https://deepcal.onrender.com'
+
 const AUTH_TOKEN_KEY = 'dc_auth_token_v1'
 const API_TIMEOUT_MS = 12000
 
@@ -81,20 +83,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
 }
 
 async function fetchApi(path, options = {}) {
-  let lastNetworkErr = null
-  for (const base of API_BASE_CANDIDATES) {
-    try {
-      return await fetchWithTimeout(`${base}${path}`, options)
-    } catch (err) {
-      // Only continue fallback for network-level errors.
-      if (err?.message === t('api.serverUnreachable')) {
-        lastNetworkErr = err
-        continue
-      }
-      throw err
-    }
-  }
-  throw lastNetworkErr || new Error(t('api.serverUnreachable'))
+  return fetchWithTimeout(`${API_URL}${path}`, options)
 }
 
 export async function analyzeMealImage(file, { signal } = {}) {
