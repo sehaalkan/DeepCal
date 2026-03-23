@@ -21,6 +21,26 @@ function authHeaders(extraHeaders = {}) {
   }
 }
 
+function isRateLimitedError(err) {
+  const status = err?.status
+  if (status === 429) return true
+  const msg = String(err?.message || '').toLowerCase()
+  if (msg.includes('429')) return true
+  if (msg.includes('quota')) return true
+  if (msg.includes('rate limit')) return true
+  if (msg.includes('resource_exhausted')) return true
+  return false
+}
+
+/**
+ * Backend hatalarını kullanıcı dostu metne çevirir (yanıltıcı API anahtarı uyarılarını göstermez).
+ */
+export function getUserFriendlyApiError(err) {
+  if (!err) return t('errors.serverBusy')
+  if (isRateLimitedError(err)) return t('errors.rateLimit')
+  return t('errors.serverBusy')
+}
+
 function extractFastApiDetail(payload) {
   if (!payload || typeof payload !== 'object') return null
   const detail = payload.detail

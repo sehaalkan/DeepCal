@@ -67,6 +67,10 @@ const DICT = {
       diaryFailed: 'Günlük alınamadı.',
       serverUnreachable: 'Sunucuya bağlanılamadı. Lütfen backend sunucusunu kontrol edin.',
     },
+    errors: {
+      rateLimit: 'Çok hızlı istek attınız. Lütfen 1 dakika bekleyip tekrar deneyin ⏱️',
+      serverBusy: 'Sunucu şu an meşgul, lütfen birazdan tekrar deneyin.',
+    },
     upload: {
       analyzing: 'Analiz ediliyor...',
     },
@@ -211,6 +215,11 @@ const DICT = {
       statsFailed: 'Could not fetch statistics.',
       diaryFailed: 'Could not fetch diary.',
       serverUnreachable: 'Could not connect to server. Please check backend service.',
+    },
+    errors: {
+      rateLimit:
+        "You're sending requests too quickly. Please wait a minute and try again ⏱️",
+      serverBusy: 'The server is busy right now. Please try again shortly.',
     },
     upload: {
       analyzing: 'Analyzing...',

@@ -1,6 +1,7 @@
 import './style.css'
 import {
   analyzeMealImage,
+  getUserFriendlyApiError,
   createLogEntry,
   getTodayLog,
   getTodayStats,
@@ -1022,7 +1023,7 @@ function initStaticDashboard() {
       console.error('Analiz Hatası Detayı:', err)
       isAnalyzing = false
       setAnalyzeButtonLoading(false)
-      showToast(err?.message || t('ai.analyzeFailed'))
+      showToast(getUserFriendlyApiError(err))
       fileInput.value = ''
     }
   })
@@ -3136,7 +3137,7 @@ function render() {
         }, 0)
       }, 300)
     } catch (err) {
-      setSheetMessage(err?.message || 'Kayıt başarısız.')
+      setSheetMessage(getUserFriendlyApiError(err))
     } finally {
       saveBtn.disabled = false
     }
